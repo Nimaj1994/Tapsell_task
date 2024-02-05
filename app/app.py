@@ -1,11 +1,22 @@
 import os
-from flask import Flask, request, jsonify
+from bson.json_util import dumps
+from flask import Flask, request, jsonify, Response
 from flask_pymongo import PyMongo
+from flask_caching import Cache
 
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
 application = Flask(__name__)
+cache.init_app(application)
 
-application.config["MONGO_URI"] = 'mongodb://' + os.environ['MONGODB_USERNAME'] + ':' + os.environ[
-    'MONGODB_PASSWORD'] + '@' + os.environ['MONGODB_HOSTNAME'] + ':27017/' + os.environ['MONGODB_DATABASE']
+application.config["MONGO_URI"] = ('mongodb://' +
+                                   os.environ['MONGO_INITDB_ROOT_USERNAME'] +
+                                   ':' +
+                                   os.environ['MONGO_INITDB_ROOT_PASSWORD'] +
+                                   '@' +
+                                   os.environ['MONGODB_HOSTNAME'] +
+                                   ':27017/' +
+                                   os.environ['MONGO_INITDB_DATABASE'] +
+                                   "?authSource=admin")
 
 mongo = PyMongo(application)
 db = mongo.db
@@ -19,37 +30,16 @@ def index():
     )
 
 
-@application.route('/todo')
-def todo():
-    _todos = db.todo.find()
-
-    item = {}
-    data = []
-    for todo in _todos:
-        item = {
-            'id': str(todo['_id']),
-            'todo': todo['todo']
-        }
-        data.append(item)
-
-    return jsonify(
-        status=True,
-        data=data
-    )
-
-
-@application.route('/todo', methods=['POST'])
-def createTodo():
+@application.route('/predict', methods=['POST'])
+@cache.cached(timeout=60)
+def predict():
     data = request.get_json(force=True)
-    item = {
-        'todo': data['todo']
-    }
-    db.todo.insert_one(item)
-
-    return jsonify(
-        status=True,
-        message='To-do saved successfully!'
-    ), 201
+    list_of_ids = data["adIdList"]
+    ctrs = db.estimated_ctr.find({"id": {"$in": list_of_ids}}, {'_id': False})
+    return Response(
+        dumps(list(ctrs)),
+        mimetype='application/json'
+    )
 
 
 if __name__ == "__main__":

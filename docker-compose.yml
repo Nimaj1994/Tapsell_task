@@ -6,16 +6,10 @@ services:
       context: app
       dockerfile: Dockerfile
     container_name: flask
-    image: digitalocean.com/flask-python:3.6
+    image: flask-python:3.6
     restart: unless-stopped
-    environment:
-      APP_ENV: "prod"
-      APP_DEBUG: "False"
-      APP_PORT: 5000
-      MONGODB_DATABASE: flaskdb
-      MONGODB_USERNAME: flaskuser
-      MONGODB_PASSWORD: your_mongodb_password
-      MONGODB_HOSTNAME: mongodb
+    env_file:
+      - ./tapsell.env
     volumes:
       - appdata:/var/www
     depends_on:
@@ -29,12 +23,8 @@ services:
     container_name: mongodb
     restart: unless-stopped
     command: mongod --auth
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: mongodbuser
-      MONGO_INITDB_ROOT_PASSWORD: your_mongodb_root_password
-      MONGO_INITDB_DATABASE: flaskdb
-      MONGODB_DATA_DIR: /data/db
-      MONDODB_LOG_DIR: /dev/null
+    env_file:
+      - ./tapsell.env
     volumes:
       - mongodbdata:/data/db
     networks:
@@ -44,14 +34,11 @@ services:
     build:
       context: nginx
       dockerfile: Dockerfile
-    image: digitalocean.com/webserver:latest
+    image: nginx_img:1.0
     container_name: webserver
     restart: unless-stopped
-    environment:
-      APP_ENV: "prod"
-      APP_NAME: "webserver"
-      APP_DEBUG: "true"
-      SERVICE_NAME: "webserver"
+    env_file:
+      - ./tapsell.env
     ports:
       - "80:80"
       - "443:443"

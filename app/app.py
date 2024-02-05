@@ -1,8 +1,9 @@
 import os
 from bson.json_util import dumps
-from flask import Flask, request, jsonify, Response
+from flask import Flask, abort, request, jsonify, Response
 from flask_pymongo import PyMongo
 from flask_caching import Cache
+
 
 cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
 application = Flask(__name__)
@@ -30,16 +31,18 @@ def index():
     )
 
 
-@application.route('/predict', methods=['POST'])
+@application.route('/predict/', methods=['POST'])
 @cache.cached(timeout=60)
 def predict():
     data = request.get_json(force=True)
+    if "adIdList" not in data:
+        abort(400)
     list_of_ids = data["adIdList"]
     ctrs = db.estimated_ctr.find({"id": {"$in": list_of_ids}}, {'_id': False})
     return Response(
-        dumps(list(ctrs)),
-        mimetype='application/json'
-    )
+            dumps(list(ctrs)),
+            mimetype='application/json'
+        )
 
 
 if __name__ == "__main__":

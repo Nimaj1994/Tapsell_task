@@ -1,6 +1,22 @@
 version: '3'
 services:
 
+  cron:
+    build:
+      context: cron
+      dockerfile: Dockerfile
+    image: cron_img:1.0
+    container_name: scheduler
+    restart: unless-stopped
+    env_file:
+      - ./tapsell.env
+    volumes:
+      - nginxdata:/var/log/nginx
+    depends_on:
+      - webserver
+    networks:
+      - backend
+
   flask:
     build:
       context: app

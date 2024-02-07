@@ -57,7 +57,6 @@ services:
       - ./tapsell.env
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - nginxdata:/var/log/nginx
     depends_on:
